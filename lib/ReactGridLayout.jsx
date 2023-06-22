@@ -1,7 +1,7 @@
 // @flow
 import * as React from "react";
 
-import { deepEqual } from "fast-equals";
+import isEqual from "lodash.isequal";
 import clsx from "clsx";
 import {
   bottom,
@@ -158,7 +158,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     // Legacy support for compactType
     // Allow parent to set layout directly.
     if (
-      !deepEqual(nextProps.layout, prevState.propsLayout) ||
+      !isEqual(nextProps.layout, prevState.propsLayout) ||
       nextProps.compactType !== prevState.compactType
     ) {
       newLayoutBase = nextProps.layout;
@@ -198,7 +198,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       // from SCU is if the user intentionally memoizes children. If they do, and they can
       // handle changes properly, performance will increase.
       this.props.children !== nextProps.children ||
-      !fastRGLPropsEqual(this.props, nextProps, deepEqual) ||
+      !fastRGLPropsEqual(this.props, nextProps, isEqual) ||
       this.state.activeDrag !== nextState.activeDrag ||
       this.state.mounted !== nextState.mounted ||
       this.state.droppingPosition !== nextState.droppingPosition
@@ -348,13 +348,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       allowOverlap
     );
 
+    this.props.onDragStop(layout, oldDragItem, l, null, e, node);
+
     // Set state
     const newLayout = allowOverlap
       ? layout
       : compact(layout, compactType(this.props), cols);
-
-    this.props.onDragStop(newLayout, oldDragItem, l, null, e, node);
-
     const { oldLayout } = this.state;
     this.setState({
       activeDrag: null,
@@ -369,7 +368,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
   onLayoutMaybeChanged(newLayout: Layout, oldLayout: ?Layout) {
     if (!oldLayout) oldLayout = this.state.layout;
 
-    if (!deepEqual(oldLayout, newLayout)) {
+    if (!isEqual(oldLayout, newLayout)) {
       this.props.onLayoutChange(newLayout);
     }
   }
@@ -469,13 +468,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const { cols, allowOverlap } = this.props;
     const l = getLayoutItem(layout, i);
 
+    this.props.onResizeStop(layout, oldResizeItem, l, null, e, node);
+
     // Set state
     const newLayout = allowOverlap
       ? layout
       : compact(layout, compactType(this.props), cols);
-
-    this.props.onResizeStop(newLayout, oldResizeItem, l, null, e, node);
-
     const { oldLayout } = this.state;
     this.setState({
       activeDrag: null,
@@ -499,6 +497,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       cols,
       margin,
       containerPadding,
+      enableUserSelectHack,
       rowHeight,
       maxRows,
       useCSSTransforms,
@@ -515,6 +514,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
         i={activeDrag.i}
         className="react-grid-placeholder"
         containerWidth={width}
+        enableUserSelectHack={enableUserSelectHack}
         cols={cols}
         margin={margin}
         containerPadding={containerPadding || margin}
@@ -715,8 +715,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const newLayout = compact(
       layout.filter(l => l.i !== droppingItem.i),
       compactType(this.props),
-      cols,
-      this.props.allowOverlap
+      cols
     );
 
     this.setState({
@@ -729,7 +728,6 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
   onDragLeave: EventHandler = e => {
     e.preventDefault(); // Prevent any browser native action
-    e.stopPropagation();
     this.dragEnterCounter--;
 
     // onDragLeave can be triggered on each layout's child.
@@ -744,13 +742,11 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
   onDragEnter: EventHandler = e => {
     e.preventDefault(); // Prevent any browser native action
-    e.stopPropagation();
     this.dragEnterCounter++;
   };
 
   onDrop: EventHandler = (e: Event) => {
     e.preventDefault(); // Prevent any browser native action
-    e.stopPropagation();
     const { droppingItem } = this.props;
     const { layout } = this.state;
     const item = layout.find(l => l.i === droppingItem.i);
