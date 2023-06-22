@@ -70,6 +70,7 @@ type Props = {
   // Draggability
   cancel: string,
   handle: string,
+  enableUserSelectHack: boolean,
 
   x: number,
   y: number,
@@ -187,6 +188,7 @@ export default class GridItem extends React.Component<Props, State> {
     // Selector for draggable cancel (see react-draggable)
     cancel: PropTypes.string,
     // Current position of a dropping element
+    enableUserSelectHack: PropTypes.bool,
     droppingPosition: PropTypes.shape({
       e: PropTypes.object.isRequired,
       left: PropTypes.number.isRequired,
@@ -344,6 +346,7 @@ export default class GridItem extends React.Component<Props, State> {
         onDrag={this.onDrag}
         onStop={this.onDragStop}
         handle={this.props.handle}
+        enableUserSelectHack={this.props.enableUserSelectHack}
         cancel={
           ".react-resizable-handle" +
           (this.props.cancel ? "," + this.props.cancel : "")
